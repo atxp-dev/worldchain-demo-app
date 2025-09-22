@@ -12,25 +12,32 @@ import { useEffect, useState } from 'react';
 
 export const ViewPermissions = () => {
   const [permissions, setPermissions] = useState<Record<string, boolean>>({});
+  const [isLoading, setIsLoading] = useState(true);
   const { isInstalled } = useMiniKit();
 
   useEffect(() => {
-    const fetchPermissions = async () => {
+    const fetchPermissions = () => {
+      setIsLoading(true);
       if (isInstalled) {
         try {
-          // You can also fetch this by grabbing from user
-          // MiniKit.user.permissions
-          const permissions = await MiniKit.commandsAsync.getPermissions();
-          if (permissions?.finalPayload.status === 'success') {
-            setPermissions(permissions?.finalPayload.permissions || {});
-            console.log('permissions', permissions);
+          // Only use synchronous user.permissions to avoid event handler issues
+          if (MiniKit.user?.permissions) {
+            setPermissions(MiniKit.user.permissions);
+            console.log('permissions from user', MiniKit.user.permissions);
+          } else {
+            // No permissions available synchronously
+            console.log('No permissions available from MiniKit.user');
+            setPermissions({});
           }
         } catch (error) {
-          console.error('Failed to fetch permissions:', error);
+          console.error('Failed to access permissions:', error);
+          setPermissions({});
         }
       } else {
         console.log('MiniKit is not installed');
+        setPermissions({});
       }
+      setIsLoading(false);
     };
     fetchPermissions();
   }, [isInstalled]);
@@ -38,7 +45,19 @@ export const ViewPermissions = () => {
   return (
     <div className="grid w-full gap-4">
       <p className="text-lg font-semibold">Permissions</p>
-      {permissions &&
+
+      {isLoading && (
+        <div className="flex items-center gap-2 p-4">
+          <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          <span className="text-sm text-gray-600">Loading permissions...</span>
+        </div>
+      )}
+
+      {!isLoading && Object.keys(permissions).length === 0 && (
+        <p className="text-sm text-gray-600">No permissions available or MiniKit not connected.</p>
+      )}
+
+      {!isLoading && Object.keys(permissions).length > 0 &&
         Object.entries(permissions).map(([permission, value]) => (
           <ListItem
             key={permission}
