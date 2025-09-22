@@ -5,6 +5,7 @@ import { Transaction } from '@/components/Transaction';
 import { UserInfo } from '@/components/UserInfo';
 import { Verify } from '@/components/Verify';
 import { ViewPermissions } from '@/components/ViewPermissions';
+import { ImageGenerator } from '@/components/ImageGenerator';
 import { AtxpProvider } from '@/contexts/atxpContext';
 import { Marble, TopBar } from '@worldcoin/mini-apps-ui-kit-react';
 
@@ -28,6 +29,7 @@ export default async function Home() {
       </Page.Header>
       <Page.Main className="flex flex-col items-center justify-start gap-4 mb-16">
         <UserInfo />
+        <ImageGenerator />
         <Verify />
         <Pay />
         <Transaction />
