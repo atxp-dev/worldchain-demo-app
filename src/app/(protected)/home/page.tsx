@@ -5,13 +5,14 @@ import { Transaction } from '@/components/Transaction';
 import { UserInfo } from '@/components/UserInfo';
 import { Verify } from '@/components/Verify';
 import { ViewPermissions } from '@/components/ViewPermissions';
+import { AtxpProvider } from '@/contexts/atxpContext';
 import { Marble, TopBar } from '@worldcoin/mini-apps-ui-kit-react';
 
 export default async function Home() {
   const session = await auth();
 
   return (
-    <>
+    <AtxpProvider>
       <Page.Header className="p-0">
         <TopBar
           title="Home"
@@ -32,6 +33,6 @@ export default async function Home() {
         <Transaction />
         <ViewPermissions />
       </Page.Main>
-    </>
+    </AtxpProvider>
   );
 }

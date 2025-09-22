@@ -4,7 +4,7 @@ const nextConfig: NextConfig = {
   images: {
     domains: ['claims-notebooks-commission-presenting.trycloudflare.com'],
   },
-  allowedDevOrigins: ['*'], // Add your dev origin here
+  allowedDevOrigins: ['*', 'claims-notebooks-commission-presenting.trycloudflare.com'], // Add your dev origin here
   reactStrictMode: false,
 };
 

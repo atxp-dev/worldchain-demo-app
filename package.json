@@ -13,9 +13,17 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@atxp/client": "file:../atxp-dev-sdk/packages/atxp-client/dist",
+    "@atxp/common": "file:../atxp-dev-sdk/packages/atxp-common/dist",
+    "@atxp/worldcoin": "file:../atxp-dev-sdk/packages/atxp-worldcoin/dist",
+    "@modelcontextprotocol/sdk": "^1.17.4",
+    "@solana/pay": "^0.2.6",
+    "@solana/web3.js": "^1.98.4",
+    "@tanstack/react-query": "^5.90.1",
     "@worldcoin/mini-apps-ui-kit-react": "^1.0.2",
     "@worldcoin/minikit-js": "latest",
     "@worldcoin/minikit-react": "latest",
+    "bignumber.js": "^9.3.1",
     "clsx": "^2.1.1",
     "iconoir-react": "^7.11.0",
     "next": "15.2.3",
@@ -23,7 +31,9 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwind-merge": "^3.2.0",
-    "viem": "2.23.5"
+    "viem": "^2.36.0",
+    "wagmi": "^2.17.2",
+    "zod": "^4.1.11"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
@@ -36,5 +46,6 @@
     "eslint-config-next": "15.2.3",
     "tailwindcss": "^4",
     "typescript": "^5"
-  }
+  },
+  "packageManager": "pnpm@10.15.0+sha512.486ebc259d3e999a4e8691ce03b5cac4a71cbeca39372a9b762cb500cfdf0873e2cb16abe3d951b1ee2cf012503f027b98b6584e4df22524e0c7450d9ec7aa7b"
 }
