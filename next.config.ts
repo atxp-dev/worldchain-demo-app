@@ -2,7 +2,7 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   images: {
-    domains: ['static.usernames.app-backend.toolsforhumanity.com'],
+    domains: ['claims-notebooks-commission-presenting.trycloudflare.com'],
   },
   allowedDevOrigins: ['*'], // Add your dev origin here
   reactStrictMode: false,
