@@ -65,6 +65,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         // Optionally, fetch the user info from your own database
         const userInfo = await MiniKit.getUserInfo(finalPayload.address);
 
+        console.log("🔐 Authentication successful - User data:", {
+          address: finalPayload.address,
+          userInfo,
+          walletAddress: userInfo?.walletAddress || finalPayload.address,
+          note: "This address should appear in ATXP context"
+        });
+
         return {
           id: finalPayload.address,
           ...userInfo,
@@ -75,6 +82,13 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
+        console.log("🎫 JWT callback - Setting token data:", {
+          userId: user.id,
+          walletAddress: user.walletAddress,
+          username: user.username,
+          note: "This data will be used in session callback"
+        });
+
         token.userId = user.id;
         token.walletAddress = user.walletAddress;
         token.username = user.username;
@@ -84,11 +98,26 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       return token;
     },
     session: async ({ session, token }) => {
+      console.log("🎫 Session callback - Available token data:", {
+        userId: token.userId,
+        walletAddress: token.walletAddress,
+        username: token.username,
+        note: "This will be used in ATXP context"
+      });
+
       if (token.userId) {
         session.user.id = token.userId as string;
-        session.user.walletAddress = token.address as string;
+        session.user.walletAddress = token.walletAddress as string;
         session.user.username = token.username as string;
         session.user.profilePictureUrl = token.profilePictureUrl as string;
+
+        console.log("✅ Session user data set:", {
+          id: session.user.id,
+          walletAddress: session.user.walletAddress,
+          username: session.user.username
+        });
+      } else {
+        console.log("❌ No token.userId available in session callback");
       }
 
       return session;

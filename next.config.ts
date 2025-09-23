@@ -2,9 +2,9 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   images: {
-    domains: ['claims-notebooks-commission-presenting.trycloudflare.com'],
+    domains: ['hold-played-liver-twice.trycloudflare.com'],
   },
-  allowedDevOrigins: ['*', 'claims-notebooks-commission-presenting.trycloudflare.com'], // Add your dev origin here
+  allowedDevOrigins: ['*', 'hold-played-liver-twice.trycloudflare.com'], // Add your dev origin here
   reactStrictMode: false,
 };
 

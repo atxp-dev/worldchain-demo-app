@@ -7,7 +7,50 @@ import type { ReactNode } from 'react';
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { WagmiProvider } from "wagmi";
 import { wagmiConfig } from "@/lib/wagmi";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Buffer } from 'buffer';
+
+// Install Buffer globally and add base64url support
+if (typeof window !== 'undefined') {
+  (window as any).global = window;
+  (globalThis as any).Buffer = Buffer;
+
+  console.log('Installing base64url polyfill...');
+
+  const originalFrom = Buffer.from;
+  const originalToString = Buffer.prototype.toString;
+
+  // Override Buffer.from to handle base64url
+  Buffer.from = function(value: any, encoding?: any) {
+    console.log('Buffer.from called with encoding:', encoding);
+    if (encoding === 'base64url' && typeof value === 'string') {
+      console.log('Converting base64url to base64:', value);
+      // Convert base64url to base64
+      let base64 = value.replace(/-/g, '+').replace(/_/g, '/');
+      // Add padding
+      while (base64.length % 4) {
+        base64 += '=';
+      }
+      console.log('Converted to base64:', base64);
+      return originalFrom.call(this, base64, 'base64');
+    }
+    return originalFrom.call(this, value, encoding);
+  } as any;
+
+  // Override Buffer.prototype.toString to handle base64url
+  Buffer.prototype.toString = function(encoding?: any, start?: number, end?: number) {
+    console.log('Buffer.toString called with encoding:', encoding);
+    if (encoding === 'base64url') {
+      const base64 = originalToString.call(this, 'base64', start, end);
+      const result = base64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      console.log('Converted base64 to base64url:', base64, '->', result);
+      return result;
+    }
+    return originalToString.call(this, encoding, start, end);
+  };
+
+  console.log('✅ Base64url polyfill installed for Buffer');
+}
 
 const ErudaProvider = dynamic(
   () => import('@/providers/Eruda').then((c) => c.ErudaProvider),
