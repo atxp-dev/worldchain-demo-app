@@ -13,9 +13,9 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@atxp/client": "file:../atxp-dev-sdk/packages/atxp-client/dist",
-    "@atxp/common": "file:../atxp-dev-sdk/packages/atxp-common/dist",
-    "@atxp/worldcoin": "file:../atxp-dev-sdk/packages/atxp-worldcoin/dist",
+    "@atxp/client": "file:../../atxp/atxp-dev-sdk/packages/atxp-client/dist",
+    "@atxp/common": "file:../../atxp/atxp-dev-sdk/packages/atxp-common/dist",
+    "@atxp/worldchain": "file:../../atxp/atxp-dev-sdk/packages/atxp-worldchain/dist",
     "@modelcontextprotocol/sdk": "^1.17.4",
     "@noble/secp256k1": "^3.0.0",
     "@safe-global/protocol-kit": "^6.1.1",

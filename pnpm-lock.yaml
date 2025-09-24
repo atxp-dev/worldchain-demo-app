@@ -9,14 +9,14 @@ importers:
   .:
     dependencies:
       '@atxp/client':
-        specifier: file:../atxp-dev-sdk/packages/atxp-client/dist
-        version: dist@file:../atxp-dev-sdk/packages/atxp-client/dist
+        specifier: file:../../atxp/atxp-dev-sdk/packages/atxp-client/dist
+        version: dist@file:../../atxp/atxp-dev-sdk/packages/atxp-client/dist
       '@atxp/common':
-        specifier: file:../atxp-dev-sdk/packages/atxp-common/dist
-        version: dist@file:../atxp-dev-sdk/packages/atxp-common/dist
-      '@atxp/worldcoin':
-        specifier: file:../atxp-dev-sdk/packages/atxp-worldcoin/dist
-        version: dist@file:../atxp-dev-sdk/packages/atxp-worldcoin/dist
+        specifier: file:../../atxp/atxp-dev-sdk/packages/atxp-common/dist
+        version: dist@file:../../atxp/atxp-dev-sdk/packages/atxp-common/dist
+      '@atxp/worldchain':
+        specifier: file:../../atxp/atxp-dev-sdk/packages/atxp-worldchain/dist
+        version: dist@file:../../atxp/atxp-dev-sdk/packages/atxp-worldchain/dist
       '@modelcontextprotocol/sdk':
         specifier: ^1.17.4
         version: 1.18.1
@@ -2079,14 +2079,14 @@ packages:
   dijkstrajs@1.0.3:
     resolution: {integrity: sha512-qiSlmBq9+BCdCA/L46dw8Uy93mloxsPSbwnm5yrKn2vMPiy8KyAskTF6zuV/j5BMsmOGZDPs7KjU+mjb670kfA==}
 
-  dist@file:../atxp-dev-sdk/packages/atxp-client/dist:
-    resolution: {directory: ../atxp-dev-sdk/packages/atxp-client/dist, type: directory}
+  dist@file:../../atxp/atxp-dev-sdk/packages/atxp-client/dist:
+    resolution: {directory: ../../atxp/atxp-dev-sdk/packages/atxp-client/dist, type: directory}
 
-  dist@file:../atxp-dev-sdk/packages/atxp-common/dist:
-    resolution: {directory: ../atxp-dev-sdk/packages/atxp-common/dist, type: directory}
+  dist@file:../../atxp/atxp-dev-sdk/packages/atxp-common/dist:
+    resolution: {directory: ../../atxp/atxp-dev-sdk/packages/atxp-common/dist, type: directory}
 
-  dist@file:../atxp-dev-sdk/packages/atxp-worldcoin/dist:
-    resolution: {directory: ../atxp-dev-sdk/packages/atxp-worldcoin/dist, type: directory}
+  dist@file:../../atxp/atxp-dev-sdk/packages/atxp-worldchain/dist:
+    resolution: {directory: ../../atxp/atxp-dev-sdk/packages/atxp-worldchain/dist, type: directory}
 
   doctrine@2.1.0:
     resolution: {integrity: sha512-35mSku4ZXK0vfCuHEDAwt55dg2jNajHZ1odvF+8SSr82EsZY4QmXfuWso8oEd8zRhVObSN18aM0CjSdoBX7zIw==}
@@ -7063,11 +7063,11 @@ snapshots:
 
   dijkstrajs@1.0.3: {}
 
-  dist@file:../atxp-dev-sdk/packages/atxp-client/dist: {}
+  dist@file:../../atxp/atxp-dev-sdk/packages/atxp-client/dist: {}
 
-  dist@file:../atxp-dev-sdk/packages/atxp-common/dist: {}
+  dist@file:../../atxp/atxp-dev-sdk/packages/atxp-common/dist: {}
 
-  dist@file:../atxp-dev-sdk/packages/atxp-worldcoin/dist: {}
+  dist@file:../../atxp/atxp-dev-sdk/packages/atxp-worldchain/dist: {}
 
   doctrine@2.1.0:
     dependencies:
