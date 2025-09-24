@@ -12,14 +12,15 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import { parseUnits } from "viem";
+import { EIP1193Provider, parseUnits } from "viem";
 import { useAccount, useConnectorClient } from "wagmi";
 import { useSession } from "next-auth/react";
 import {
   GeneratedResult,
 } from "@/types/ai.type";
-import { ConsoleLogger, LogLevel } from "@atxp/common";
+import { ConsoleLogger, LogLevel, paymentRequiredError, parsePaymentRequests } from "@atxp/common";
 import { MiniKit } from "@worldcoin/minikit-js";
+import type { CallToolRequest, CallToolResult } from "@modelcontextprotocol/sdk/types.js";
 
 interface AtxpContextType {
   atxpAccount: WorldAppAccount | null;
@@ -88,6 +89,7 @@ interface AtxpProviderProps {
   children: ReactNode;
 }
 
+
 export const AtxpProvider = ({ children }: AtxpProviderProps) => {
   const [atxpAccount, setAtxpAccount] = useState<WorldAppAccount | null>(null);
   const [atxpImageClient, setAtxpImageClient] = useState<Client | null>(null);
@@ -105,11 +107,11 @@ export const AtxpProvider = ({ children }: AtxpProviderProps) => {
     }
 
     // If no connector client from wagmi, create a simple MiniKit provider
-    let provider = connectorClient;
+    let provider: EIP1193Provider | undefined = connectorClient;
     if (!provider) {
       // Create a minimal MiniKit-compatible provider
       provider = {
-        request: async ({ method, params }: { method: string; params?: any }) => {
+        request: async ({ method, params }: { method: string; params: string[] }) => {
           switch (method) {
             case 'eth_accounts':
               return [walletAddress];
@@ -137,7 +139,7 @@ export const AtxpProvider = ({ children }: AtxpProviderProps) => {
     const tmpAtxpAccount = await WorldAppAccount.initialize({
       walletAddress,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      provider: provider as any, // Type cast needed for client compatibility
+      provider: provider, // Type cast needed for client compatibility
       allowance: parseUnits("10", 6), // 10 USDC
       useEphemeralWallet: false, // Regular wallet mode (smart wallet infrastructure not available on World Chain)
       periodInDays: 30,
@@ -193,6 +195,12 @@ export const AtxpProvider = ({ children }: AtxpProviderProps) => {
           account: tmpAtxpAccount,
           mcpServer: IMAGE_SERVICE.mcpServer,
           logger: new ConsoleLogger({ level: LogLevel.DEBUG }),
+          onPayment: async ({ payment }) => {
+            console.log("🎉 ATXP Payment callback triggered:", payment);
+          },
+          onPaymentFailure: async ({ payment, error }) => {
+            console.log("❌ ATXP Payment failure callback triggered:", payment, error);
+          }
         });
 
         console.log("🎯 ATXP client created successfully");
@@ -212,6 +220,7 @@ export const AtxpProvider = ({ children }: AtxpProviderProps) => {
       });
 
       console.log("image gen async response", response);
+
       const finalResult = IMAGE_SERVICE.getAsyncCreateResult(response as {content: [{text: string}]});
       console.log("image gen final result", finalResult);
 
