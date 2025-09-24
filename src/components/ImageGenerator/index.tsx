@@ -3,6 +3,7 @@
 import { useAtxp } from '@/contexts/atxpContext';
 import { Button } from '@worldcoin/mini-apps-ui-kit-react';
 import { useState, useCallback } from 'react';
+import Image from 'next/image';
 
 export const ImageGenerator = () => {
   const [prompt, setPrompt] = useState('');
@@ -110,11 +111,14 @@ export const ImageGenerator = () => {
           <div className="mt-6">
             <h3 className="text-md font-medium mb-2">Generated Image:</h3>
             <div className="border border-gray-200 rounded-md overflow-hidden">
-              <img
+              <Image
                 src={generatedImageUrl}
                 alt="Generated image"
+                width={800}
+                height={600}
                 className="w-full h-auto"
                 onError={() => setError('Failed to load generated image')}
+                unoptimized
               />
             </div>
           </div>
