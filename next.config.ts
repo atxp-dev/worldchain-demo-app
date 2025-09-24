@@ -2,9 +2,9 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   images: {
-    domains: ['gotta-pictures-powerseller-for.trycloudflare.com'],
+    domains: ['ec4c267c99bf.ngrok-free.app'],
   },
-  allowedDevOrigins: ['*', 'gotta-pictures-powerseller-for.trycloudflare.com'], // Add your dev origin here
+  allowedDevOrigins: ['*', 'ec4c267c99bf.ngrok-free.app'], // Add your dev origin here
   reactStrictMode: false,
 };
 
