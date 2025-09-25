@@ -4,6 +4,20 @@ import { useAtxp } from '@/contexts/atxpContext';
 import { Button } from '@worldcoin/mini-apps-ui-kit-react';
 import { useState, useCallback } from 'react';
 import Image from 'next/image';
+import { useProgressiveMessage } from '@/hooks/useProgressiveMessage';
+
+const WAITING_MESSAGES = [
+  'Creating your image...',
+  'Image MCP server working...',
+  'Processing your request...',
+  'Check out https://docs.atxp.ai for more information',
+  'Generating pixels...',
+  'Almost ready...',
+  'Only a few more seconds...',
+  'Putting finishing touches...',
+  'This usually takes 1-2 minutes...',
+  'Thanks for your patience...'
+];
 
 export const ImageGenerator = () => {
   const [prompt, setPrompt] = useState('');
@@ -13,6 +27,11 @@ export const ImageGenerator = () => {
   const [error, setError] = useState<string | null>(null);
 
   const { generateImage, waitForImage } = useAtxp();
+
+  const waitingMessage = useProgressiveMessage({
+    messages: WAITING_MESSAGES,
+    interval: 3000 // Change message every 3 seconds
+  });
 
   const handleSubmit = useCallback(async () => {
     if (!prompt.trim() || isGenerating || isWaiting) {
@@ -97,7 +116,7 @@ export const ImageGenerator = () => {
           className="w-full"
         >
           {isGenerating && 'Generating Image...'}
-          {isWaiting && 'Waiting for Image...'}
+          {isWaiting && 'Creating Image...'}
           {!isLoading && 'Generate Image'}
         </Button>
 
@@ -130,7 +149,7 @@ export const ImageGenerator = () => {
               <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
               <p className="text-sm text-gray-600">
                 {isGenerating && 'Submitting your request...'}
-                {isWaiting && 'Creating your image...'}
+                {isWaiting && waitingMessage}
               </p>
             </div>
           </div>
