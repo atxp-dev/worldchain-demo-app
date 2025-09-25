@@ -342,32 +342,14 @@ export const AtxpProvider = ({ children }: AtxpProviderProps) => {
       console.log("🛠️ Making authenticated API call to ATXP backend...");
 
       try {
-        console.log(`🔗 Making async image creation request for prompt: "${prompt}"`);
-        console.log(`📡 MCP Server: ${IMAGE_SERVICE.mcpServer}`);
-        console.log(`🔧 Tool Name: ${IMAGE_SERVICE.createImageAsyncToolName}`);
-        console.log(`📝 Arguments:`, IMAGE_SERVICE.getArguments(prompt));
-
-        const startTime = Date.now();
-
         const response = await imageClient.callTool({
           name: IMAGE_SERVICE.createImageAsyncToolName,
           arguments: IMAGE_SERVICE.getArguments(prompt),
           // Remove timeout to use MCP client default - the server call should be quick
         });
 
-        const endTime = Date.now();
-        console.log(`✅ Async image creation request completed in ${endTime - startTime}ms`);
-
-        console.log("📨 Backend response received:", {
-          success: !!response,
-          responseType: typeof response,
-          note: "If this works, JWT verification succeeded on backend"
-        });
-
-        console.log("image gen async response", response);
 
         const finalResult = IMAGE_SERVICE.getAsyncCreateResult(response as {content: [{text: string}]});
-        console.log("image gen final result", finalResult);
 
         return {
           isError: false,
