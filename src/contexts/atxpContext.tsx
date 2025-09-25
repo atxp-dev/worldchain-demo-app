@@ -1,6 +1,6 @@
 "use client";
 
-import { WorldAppAccount } from "@atxp/worldcoin";
+import { WorldchainAccount } from "@atxp/worldchain";
 import { atxpClient } from "@atxp/client";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 // import ky from "ky";
@@ -12,18 +12,17 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import { EIP1193Provider, parseUnits } from "viem";
+import { parseUnits, Transaction } from "viem";
 import { useAccount, useConnectorClient } from "wagmi";
 import { useSession } from "next-auth/react";
 import {
   GeneratedResult,
 } from "@/types/ai.type";
-import { ConsoleLogger, LogLevel, paymentRequiredError, parsePaymentRequests } from "@atxp/common";
-import { MiniKit } from "@worldcoin/minikit-js";
-import type { CallToolRequest, CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import { ConsoleLogger, LogLevel } from "@atxp/common";
+import { MiniKit, SendTransactionInput } from "@worldcoin/minikit-js";
 
 interface AtxpContextType {
-  atxpAccount: WorldAppAccount | null;
+  atxpAccount: WorldchainAccount | null;
   clearAtxp: () => void;
   generateImage: (args: {
     prompt: string;
@@ -91,7 +90,7 @@ interface AtxpProviderProps {
 
 
 export const AtxpProvider = ({ children }: AtxpProviderProps) => {
-  const [atxpAccount, setAtxpAccount] = useState<WorldAppAccount | null>(null);
+  const [atxpAccount, setAtxpAccount] = useState<WorldchainAccount | null>(null);
   const [atxpImageClient, setAtxpImageClient] = useState<Client | null>(null);
 
   const { address } = useAccount();
@@ -107,11 +106,28 @@ export const AtxpProvider = ({ children }: AtxpProviderProps) => {
     }
 
     // If no connector client from wagmi, create a simple MiniKit provider
-    let provider: EIP1193Provider | undefined = connectorClient;
-    if (!provider) {
-      // Create a minimal MiniKit-compatible provider
+    let provider:unknown;
+    if (connectorClient) {
       provider = {
-        request: async ({ method, params }: { method: string; params: string[] }) => {
+        ...connectorClient,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        request: async (args: any) => {
+          console.log("[connectorClient] request:", args);
+          return connectorClient.request(args);
+        },
+      };
+    } else {
+      // Create a minimal MiniKit-compatible provider
+      console.log("Using MiniKit provider for ATXP account");
+      provider = {
+        request: async (args: { method: string; params: unknown[] }) => {
+          const { method, params } = args;
+          console.log("[miniKitConnectorClient] request:", args);
+          if (method === 'eth_sendTransaction') {
+            console.log("[miniKitConnectorClient] Contract address:", params[0]?.to);
+            console.log("[miniKitConnectorClient] Expected USDC mainnet:", "0x79A02482A880bCE3F13e09Da970dC34db4CD24d1");
+            console.log("[miniKitConnectorClient] Expected USDC sepolia:", "0x66145f38cBAC35Ca6F1Dfb4914dF98F1614aeA88");
+          }
           switch (method) {
             case 'eth_accounts':
               return [walletAddress];
@@ -119,6 +135,135 @@ export const AtxpProvider = ({ children }: AtxpProviderProps) => {
               return '0x1e0'; // Worldchain chain ID (480)
             case 'eth_requestAccounts':
               return [walletAddress];
+            case 'eth_sendTransaction':
+              const transaction = params[0] as {data: string, to: string, value?: string, from: string};
+
+              // Handle USDC transfer (ERC20 transfer function)
+              if (transaction.data && transaction.data.startsWith('0xa9059cbb')) {
+                // This is a transfer(address,uint256) call - decode the parameters
+                const data = transaction.data.slice(10); // Remove function selector
+
+                // Extract recipient address (first 32 bytes, last 20 bytes are the address)
+                const recipientHex = '0x' + data.slice(24, 64);
+
+                // Extract amount (next 32 bytes)
+                const amountHex = '0x' + data.slice(64, 128);
+                const amount = BigInt(amountHex).toString();
+
+                // Validate transaction parameters
+                console.log("[MiniKit] Decoded transaction parameters:", {
+                  contractAddress: transaction.to,
+                  recipient: recipientHex,
+                  amount: amount,
+                  amountInUSDC: (Number(amount) / 1000000).toString() + ' USDC',
+                  from: transaction.from
+                });
+
+                // Check for memo data (any data after the standard 128 characters)
+                let memo = '';
+                if (data.length > 128) {
+                  const memoHex = data.slice(128);
+                  try {
+                    memo = Buffer.from(memoHex, 'hex').toString('utf8');
+                    console.log(`[MiniKit] Extracted memo from transaction: "${memo}"`);
+                  } catch (e) {
+                    console.warn('[MiniKit] Failed to decode memo data:', e);
+                  }
+                }
+
+                // ERC20 ABI for transfer function
+                const ERC20_ABI = [
+                  {
+                    inputs: [
+                      { name: 'to', type: 'address' },
+                      { name: 'amount', type: 'uint256' }
+                    ],
+                    name: 'transfer',
+                    outputs: [{ name: '', type: 'bool' }],
+                    stateMutability: 'nonpayable',
+                    type: 'function'
+                  }
+                ] as const;
+
+                const input: SendTransactionInput = {
+                  transaction: [
+                    {
+                      address: transaction.to, // USDC contract address
+                      abi: ERC20_ABI,
+                      functionName: 'transfer',
+                      args: [recipientHex, amount],
+                      value: transaction.value || "0"
+                    }
+                  ]
+                };
+
+                // Note: MiniKit doesn't have a standard way to include memo data in ERC20 transfers
+                // The memo is extracted and logged but not included in the transaction
+                if (memo) {
+                  console.log(`[MiniKit] Memo "${memo}" will be lost in MiniKit transaction - consider alternative approach`);
+                }
+
+                console.log("[MiniKit] Sending transaction with input:", JSON.stringify(input, null, 2));
+                const sentResult = await MiniKit.commandsAsync.sendTransaction(input);
+
+                console.log("[MiniKit] Transaction result:", JSON.stringify(sentResult, null, 2));
+
+                if (sentResult.finalPayload?.status === 'success') {
+                  return sentResult.finalPayload.transaction_id;
+                }
+
+                // Enhanced error logging for debugging
+                const errorCode = sentResult.finalPayload?.error_code;
+                const debugUrl = sentResult.finalPayload?.debug_url;
+                const errorMessage = sentResult.finalPayload?.error_message;
+                const simulationError = sentResult.finalPayload?.details?.simulationError;
+
+                console.error("[MiniKit] Transaction failed:", {
+                  errorCode,
+                  errorMessage,
+                  simulationError,
+                  debugUrl,
+                  fullPayload: sentResult.finalPayload
+                });
+
+                if (debugUrl) {
+                  console.error("[MiniKit] Debug URL for simulation failure:", debugUrl);
+                }
+
+                // Provide more user-friendly error messages
+                let userFriendlyError = `MiniKit sendTransaction failed: ${errorCode}`;
+
+                if (simulationError?.includes('transfer amount exceeds balance')) {
+                  const amountUSDC = (Number(amount) / 1000000).toFixed(6);
+                  userFriendlyError = `💳 Insufficient USDC Balance\n\n` +
+                    `You're trying to send ${amountUSDC} USDC, but your wallet doesn't have enough funds.\n\n` +
+                    `To complete this payment:\n` +
+                    `• Add USDC to your World App wallet\n` +
+                    `• Bridge USDC from another chain\n` +
+                    `• Buy USDC directly in World App\n\n` +
+                    `Wallet: ${transaction.from?.slice(0, 6)}...${transaction.from?.slice(-4)}`;
+                } else if (simulationError) {
+                  userFriendlyError += ` - ${simulationError}`;
+                } else if (errorMessage) {
+                  userFriendlyError += ` - ${errorMessage}`;
+                }
+
+                if (debugUrl) {
+                  userFriendlyError += ` (Debug: ${debugUrl})`;
+                }
+
+                throw new Error(userFriendlyError);
+              }
+
+              // Handle simple ETH transfers (no data or empty data)
+              if (!transaction.data || transaction.data === '0x') {
+                // For ETH transfers, you'd need to use the Forward contract
+                throw new Error('ETH transfers require Forward contract - not implemented yet');
+              }
+
+              // For other transaction types
+              throw new Error(`Unsupported transaction type. Data: ${transaction.data.slice(0, 10)}`);
+
             case 'personal_sign':
               const [message] = params;
               const signResult = await MiniKit.commandsAsync.signMessage({ message });
@@ -130,16 +275,13 @@ export const AtxpProvider = ({ children }: AtxpProviderProps) => {
               throw new Error(`Method ${method} not supported in MiniKit context`);
           }
         },
-        isConnected: () => true,
-        chainId: 480,
-        selectedAddress: walletAddress,
       };
     }
 
-    const tmpAtxpAccount = await WorldAppAccount.initialize({
+    const tmpAtxpAccount = await WorldchainAccount.initialize({
       walletAddress,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      provider: provider, // Type cast needed for client compatibility
+      provider: provider as any, // Type cast needed for client compatibility
       allowance: parseUnits("10", 6), // 10 USDC
       useEphemeralWallet: false, // Regular wallet mode (smart wallet infrastructure not available on World Chain)
       periodInDays: 30,
@@ -161,7 +303,7 @@ export const AtxpProvider = ({ children }: AtxpProviderProps) => {
 
   const clearAtxp = useCallback(() => {
     if (!address) return;
-    WorldAppAccount.clearAllStoredData(address);
+    WorldchainAccount.clearAllStoredData(address);
     setAtxpAccount(null);
   }, [address]);
 
