@@ -12,7 +12,7 @@ import React, {
   useEffect,
   useState,
 } from "react";
-import { parseUnits, Transaction } from "viem";
+import { parseUnits } from "viem";
 import { useAccount, useConnectorClient } from "wagmi";
 import { useSession } from "next-auth/react";
 import {
@@ -20,6 +20,7 @@ import {
 } from "@/types/ai.type";
 import { ConsoleLogger, LogLevel } from "@atxp/common";
 import { MiniKit, SendTransactionInput } from "@worldcoin/minikit-js";
+import { waitForTransactionConfirmation } from "@/lib/worldTransactionUtils";
 
 interface AtxpContextType {
   atxpAccount: WorldchainAccount | null;
@@ -42,7 +43,7 @@ export const IMAGE_SERVICE = {
   getArguments: (prompt: string) => ({ prompt }),
   getWaitForImageArguments: (taskId: string) => ({
     taskId,
-    timeoutSeconds: 300,
+    timeoutSeconds: 600, // Increase to 10 minutes
   }),
   getResult: (result: {content: [{text: string}]}) => {
     console.log("image result", JSON.stringify(result, null, 2));
@@ -123,11 +124,6 @@ export const AtxpProvider = ({ children }: AtxpProviderProps) => {
         request: async (args: { method: string; params: unknown[] }) => {
           const { method, params } = args;
           console.log("[miniKitConnectorClient] request:", args);
-          if (method === 'eth_sendTransaction') {
-            console.log("[miniKitConnectorClient] Contract address:", params[0]?.to);
-            console.log("[miniKitConnectorClient] Expected USDC mainnet:", "0x79A02482A880bCE3F13e09Da970dC34db4CD24d1");
-            console.log("[miniKitConnectorClient] Expected USDC sepolia:", "0x66145f38cBAC35Ca6F1Dfb4914dF98F1614aeA88");
-          }
           switch (method) {
             case 'eth_accounts':
               return [walletAddress];
@@ -209,26 +205,30 @@ export const AtxpProvider = ({ children }: AtxpProviderProps) => {
                 console.log("[MiniKit] Transaction result:", JSON.stringify(sentResult, null, 2));
 
                 if (sentResult.finalPayload?.status === 'success') {
-                  return sentResult.finalPayload.transaction_id;
+                  const transactionId = sentResult.finalPayload.transaction_id;
+                  console.log(`[MiniKit] Got transaction ID: ${transactionId}, waiting for confirmation...`);
+
+                  // Wait for the transaction to be confirmed and get the actual transaction hash
+                  const confirmed = await waitForTransactionConfirmation(transactionId, 120000); // 2 minute timeout
+
+                  if (confirmed && confirmed.transactionHash) {
+                    console.log(`[MiniKit] Transaction confirmed with hash: ${confirmed.transactionHash}`);
+                    return confirmed.transactionHash; // Return the actual blockchain transaction hash
+                  } else {
+                    console.error(`[MiniKit] Transaction confirmation failed for ID: ${transactionId}`);
+                    throw new Error(`Transaction confirmation failed. Transaction may still be pending.`);
+                  }
                 }
 
                 // Enhanced error logging for debugging
                 const errorCode = sentResult.finalPayload?.error_code;
-                const debugUrl = sentResult.finalPayload?.debug_url;
-                const errorMessage = sentResult.finalPayload?.error_message;
                 const simulationError = sentResult.finalPayload?.details?.simulationError;
 
                 console.error("[MiniKit] Transaction failed:", {
                   errorCode,
-                  errorMessage,
                   simulationError,
-                  debugUrl,
                   fullPayload: sentResult.finalPayload
                 });
-
-                if (debugUrl) {
-                  console.error("[MiniKit] Debug URL for simulation failure:", debugUrl);
-                }
 
                 // Provide more user-friendly error messages
                 let userFriendlyError = `MiniKit sendTransaction failed: ${errorCode}`;
@@ -244,13 +244,8 @@ export const AtxpProvider = ({ children }: AtxpProviderProps) => {
                     `Wallet: ${transaction.from?.slice(0, 6)}...${transaction.from?.slice(-4)}`;
                 } else if (simulationError) {
                   userFriendlyError += ` - ${simulationError}`;
-                } else if (errorMessage) {
-                  userFriendlyError += ` - ${errorMessage}`;
                 }
 
-                if (debugUrl) {
-                  userFriendlyError += ` (Debug: ${debugUrl})`;
-                }
 
                 throw new Error(userFriendlyError);
               }
@@ -266,7 +261,7 @@ export const AtxpProvider = ({ children }: AtxpProviderProps) => {
 
             case 'personal_sign':
               const [message] = params;
-              const signResult = await MiniKit.commandsAsync.signMessage({ message });
+              const signResult = await MiniKit.commandsAsync.signMessage({ message: message as string });
               if (signResult?.finalPayload?.status === 'success') {
                 return signResult.finalPayload.signature;
               }
@@ -285,6 +280,7 @@ export const AtxpProvider = ({ children }: AtxpProviderProps) => {
       allowance: parseUnits("10", 6), // 10 USDC
       useEphemeralWallet: false, // Regular wallet mode (smart wallet infrastructure not available on World Chain)
       periodInDays: 30,
+      customRpcUrl: 'https://worldchain-mainnet.g.alchemy.com/v2/4Wxr8nWIrnKNvlM7pbbzB' // Your private RPC URL with API key
     });
 
     setAtxpAccount(tmpAtxpAccount);
@@ -350,26 +346,76 @@ export const AtxpProvider = ({ children }: AtxpProviderProps) => {
       }
 
       console.log("🛠️ Making authenticated API call to ATXP backend...");
-      const response = await imageClient.callTool({
-        name: IMAGE_SERVICE.createImageAsyncToolName,
-        arguments: IMAGE_SERVICE.getArguments(prompt),
-      });
 
-      console.log("📨 Backend response received:", {
-        success: !!response,
-        responseType: typeof response,
-        note: "If this works, JWT verification succeeded on backend"
-      });
+      try {
+        console.log(`🔗 Making async image creation request for prompt: "${prompt}"`);
+        console.log(`📡 MCP Server: ${IMAGE_SERVICE.mcpServer}`);
+        console.log(`🔧 Tool Name: ${IMAGE_SERVICE.createImageAsyncToolName}`);
+        console.log(`📝 Arguments:`, IMAGE_SERVICE.getArguments(prompt));
 
-      console.log("image gen async response", response);
+        const startTime = Date.now();
 
-      const finalResult = IMAGE_SERVICE.getAsyncCreateResult(response as {content: [{text: string}]});
-      console.log("image gen final result", finalResult);
+        const response = await imageClient.callTool({
+          name: IMAGE_SERVICE.createImageAsyncToolName,
+          arguments: IMAGE_SERVICE.getArguments(prompt),
+          // Remove timeout to use MCP client default - the server call should be quick
+        });
 
-      return {
-        isError: false,
-        taskId: finalResult.taskId,
-      };
+        const endTime = Date.now();
+        console.log(`✅ Async image creation request completed in ${endTime - startTime}ms`);
+
+        console.log("📨 Backend response received:", {
+          success: !!response,
+          responseType: typeof response,
+          note: "If this works, JWT verification succeeded on backend"
+        });
+
+        console.log("image gen async response", response);
+
+        const finalResult = IMAGE_SERVICE.getAsyncCreateResult(response as {content: [{text: string}]});
+        console.log("image gen final result", finalResult);
+
+        return {
+          isError: false,
+          taskId: finalResult.taskId,
+        };
+      } catch (error) {
+        console.error("🔥 MCP request failed:", error);
+
+        // Check if this is a payment verification failure (transaction succeeded but receipt not found)
+        if (error instanceof Error && error.message.includes('Transaction receipt')) {
+          console.log("💳 Payment verification failed - transaction may still be propagating");
+          return {
+            isError: true,
+            error: `💳 Payment verification failed - your transaction may still be propagating on the World Chain network.\n\n` +
+                   `Your USDC transaction likely succeeded, but the payment server couldn't verify it yet due to network delays.\n\n` +
+                   `Please wait 1-2 minutes and try again. If the transaction succeeded, you should not be charged again.`,
+          };
+        }
+
+        // If it's a timeout or connection error, clear the client to force reconnection
+        if (error instanceof Error && (
+          error.message.includes('timeout') ||
+          error.message.includes('Request timed out') ||
+          error.message.includes('connection') ||
+          error.message.includes('Client connection timeout')
+        )) {
+          console.log("🔄 Clearing MCP client due to timeout/connection error - will reconnect on next request");
+          setAtxpImageClient(null);
+
+          return {
+            isError: true,
+            error: `🔗 Connection timeout occurred while setting up the image generation service.\n\n` +
+                   `This appears to be a connection issue, not a payment problem.\n\n` +
+                   `Please try again in a few moments.`,
+          };
+        }
+
+        return {
+          isError: true,
+          error: `Image generation failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        };
+      }
     },
     [atxpAccount, atxpImageClient, loadAtxp],
   );
@@ -377,14 +423,15 @@ export const AtxpProvider = ({ children }: AtxpProviderProps) => {
 
   const waitForImage = useCallback(
     async ({ taskId }: { taskId: string }) => {
-      if (!taskId) return;
+      if (!taskId) return null;
+
       let tmpAtxpAccount = atxpAccount;
       if (!tmpAtxpAccount) {
         tmpAtxpAccount = await loadAtxp();
       }
       if (!tmpAtxpAccount) {
         console.error("Failed to load ATXP account");
-        return;
+        return null;
       }
 
       let imageClient = atxpImageClient;
@@ -394,29 +441,85 @@ export const AtxpProvider = ({ children }: AtxpProviderProps) => {
         imageClient = await atxpClient({
           account: tmpAtxpAccount,
           mcpServer: IMAGE_SERVICE.mcpServer,
+          logger: new ConsoleLogger({ level: LogLevel.DEBUG }),
         });
         setAtxpImageClient(imageClient);
 
         console.log("🎯 ATXP client for polling created successfully");
       }
 
-      console.log("🛠️ Making authenticated status polling API call...");
-      const response = await imageClient.callTool({
-        name: IMAGE_SERVICE.getImageAsyncToolName,
-        arguments: IMAGE_SERVICE.getWaitForImageArguments(taskId),
-      });
-      console.log("image wait for response", response);
-      const finalResult = IMAGE_SERVICE.getAsyncStatusResult(response as {content: [{text: string}]});
-      console.log("image wait for final result", finalResult);
+      console.log("🛠️ Starting client-side polling for task completion...");
 
-      if (
-        finalResult.status === "completed" ||
-        finalResult.status === "success"
-      ) {
-        return finalResult.url;
-      } else {
-        return null;  // TODO: handle error
+      // Client-side polling logic - poll every 5 seconds for up to 10 minutes
+      const maxAttempts = 120; // 10 minutes / 5 seconds = 120 attempts
+      const pollInterval = 5000; // 5 seconds
+
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+          console.log(`📊 Polling attempt ${attempt}/${maxAttempts} for task ${taskId}`);
+
+          // If we don't have a client (due to previous error), recreate it
+          if (!imageClient) {
+            console.log("🔄 Recreating MCP client for polling...");
+            imageClient = await atxpClient({
+              account: tmpAtxpAccount,
+              mcpServer: IMAGE_SERVICE.mcpServer,
+            });
+            setAtxpImageClient(imageClient);
+          }
+
+          console.log(`🔗 Making MCP call for task ${taskId}...`);
+          const startTime = Date.now();
+
+          const response = await imageClient.callTool({
+            name: IMAGE_SERVICE.getImageAsyncToolName,
+            arguments: { taskId }, // Only send taskId, no timeout parameter
+            // Remove timeout option entirely - let MCP client use its default
+          });
+
+          const endTime = Date.now();
+          console.log(`✅ MCP call completed in ${endTime - startTime}ms`);
+
+          console.log(`image polling response (attempt ${attempt}):`, response);
+          const result = IMAGE_SERVICE.getAsyncStatusResult(response as {content: [{text: string}]});
+          console.log(`image polling result (attempt ${attempt}):`, result);
+
+          if (result.status === "completed" || result.status === "success") {
+            console.log("✅ Image generation completed successfully!");
+            return result.url;
+          } else if (result.status === "error") {
+            console.error("❌ Image generation failed:", result.error);
+            return null;
+          } else {
+            // Still processing, wait before next attempt
+            console.log(`⏳ Image still processing (${result.status}), waiting ${pollInterval}ms...`);
+            if (attempt < maxAttempts) {
+              await new Promise(resolve => setTimeout(resolve, pollInterval));
+            }
+          }
+        } catch (error) {
+          console.error(`🔥 MCP status polling failed on attempt ${attempt}:`, error);
+
+          // If it's a connection error, clear the client to force reconnection
+          if (error instanceof Error && (
+            error.message.includes('timeout') ||
+            error.message.includes('Request timed out') ||
+            error.message.includes('connection')
+          )) {
+            console.log("🔄 Clearing MCP client due to connection error - will reconnect on next attempt");
+            setAtxpImageClient(null);
+            imageClient = null; // Force reconnection on next attempt
+          }
+
+          // Wait before retrying
+          if (attempt < maxAttempts) {
+            await new Promise(resolve => setTimeout(resolve, pollInterval));
+          }
+        }
       }
+
+      console.error("⏰ Polling timeout: Image generation did not complete within 10 minutes");
+      return null;
     },
     [atxpAccount, atxpImageClient, loadAtxp],
   );

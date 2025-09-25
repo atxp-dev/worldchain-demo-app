@@ -21,7 +21,7 @@ if (typeof window !== 'undefined') {
   const originalToString = Buffer.prototype.toString;
 
   // Override Buffer.from to handle base64url
-  Buffer.from = function(value: any, encoding?: any) {
+  Buffer.from = function(this: any, value: any, encoding?: any) {
     console.log('Buffer.from called with encoding:', encoding);
     if (encoding === 'base64url' && typeof value === 'string') {
       console.log('Converting base64url to base64:', value);
@@ -32,9 +32,9 @@ if (typeof window !== 'undefined') {
         base64 += '=';
       }
       console.log('Converted to base64:', base64);
-      return originalFrom.call(this, base64, 'base64');
+      return originalFrom(base64, 'base64');
     }
-    return originalFrom.call(this, value, encoding);
+    return originalFrom(value, encoding);
   } as any;
 
   // Override Buffer.prototype.toString to handle base64url
