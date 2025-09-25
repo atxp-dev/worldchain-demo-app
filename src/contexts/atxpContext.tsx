@@ -113,7 +113,6 @@ export const AtxpProvider = ({ children }: AtxpProviderProps) => {
         ...connectorClient,
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         request: async (args: any) => {
-          console.log("[connectorClient] request:", args);
           return connectorClient.request(args);
         },
       };
@@ -123,7 +122,6 @@ export const AtxpProvider = ({ children }: AtxpProviderProps) => {
       provider = {
         request: async (args: { method: string; params: unknown[] }) => {
           const { method, params } = args;
-          console.log("[miniKitConnectorClient] request:", args);
           switch (method) {
             case 'eth_accounts':
               return [walletAddress];
@@ -199,14 +197,10 @@ export const AtxpProvider = ({ children }: AtxpProviderProps) => {
                   console.log(`[MiniKit] Memo "${memo}" will be lost in MiniKit transaction - consider alternative approach`);
                 }
 
-                console.log("[MiniKit] Sending transaction with input:", JSON.stringify(input, null, 2));
                 const sentResult = await MiniKit.commandsAsync.sendTransaction(input);
-
-                console.log("[MiniKit] Transaction result:", JSON.stringify(sentResult, null, 2));
 
                 if (sentResult.finalPayload?.status === 'success') {
                   const transactionId = sentResult.finalPayload.transaction_id;
-                  console.log(`[MiniKit] Got transaction ID: ${transactionId}, waiting for confirmation...`);
 
                   // Wait for the transaction to be confirmed and get the actual transaction hash
                   const confirmed = await waitForTransactionConfirmation(transactionId, 120000); // 2 minute timeout

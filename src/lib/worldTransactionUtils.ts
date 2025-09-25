@@ -16,8 +16,6 @@ export async function resolveTransactionHash(transactionId: string): Promise<{
   status: string;
 } | null> {
   try {
-    console.log(`[WorldTransaction] Resolving transaction ID: ${transactionId}`);
-
     const response = await fetch('/api/resolve-transaction', {
       method: 'POST',
       headers: {
@@ -33,13 +31,6 @@ export async function resolveTransactionHash(transactionId: string): Promise<{
     }
 
     const transaction: WorldTransaction = await response.json();
-
-    console.log(`[WorldTransaction] Resolved:`, {
-      transactionId: transaction.transactionId,
-      transactionHash: transaction.transactionHash,
-      status: transaction.transactionStatus,
-      network: transaction.network
-    });
 
     return {
       transactionHash: transaction.transactionHash,
@@ -66,20 +57,11 @@ export async function waitForTransactionConfirmation(
 } | null> {
   const startTime = Date.now();
 
-  console.log(`[WorldTransaction] Waiting for transaction confirmation: ${transactionId}`);
-
   while (Date.now() - startTime < timeoutMs) {
     const result = await resolveTransactionHash(transactionId);
 
     if (result && result.transactionHash && result.status !== 'pending') {
-      console.log(`[WorldTransaction] Transaction confirmed: ${result.transactionHash} (status: ${result.status})`);
       return result;
-    }
-
-    if (result) {
-      console.log(`[WorldTransaction] Transaction still pending, waiting...`);
-    } else {
-      console.log(`[WorldTransaction] Could not resolve transaction, waiting...`);
     }
 
     // Wait before next poll
