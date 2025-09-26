@@ -1,7 +1,7 @@
 'use client';
 
 import { useAtxp } from '@/contexts/atxpContext';
-import { Button } from '@worldcoin/mini-apps-ui-kit-react';
+import { Button, TextArea, Typography } from '@worldcoin/mini-apps-ui-kit-react';
 import { useState, useCallback } from 'react';
 import Image from 'next/image';
 import { useProgressiveMessage } from '@/hooks/useProgressiveMessage';
@@ -109,21 +109,20 @@ export const ImageGenerator = () => {
 
   return (
     <div className="w-full max-w-2xl mx-auto p-4 bg-white rounded-lg border-2 border-gray-200">
-      <h2 className="text-lg font-semibold mb-4">AI Image Generator</h2>
+      <Typography variant="h2" className="mb-4">AI Image Generator</Typography>
 
       <div className="space-y-4">
         <div>
-          <label htmlFor="prompt" className="block text-sm font-medium text-gray-700 mb-2">
+          <Typography variant="label" className="block mb-2">
             Image Prompt
-          </label>
-          <textarea
-            id="prompt"
+          </Typography>
+          <TextArea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Describe the image you want to generate... (Ctrl/Cmd + Enter to submit)"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-vertical min-h-[100px]"
             disabled={isLoading}
+            rows={4}
           />
         </div>
 
@@ -141,13 +140,13 @@ export const ImageGenerator = () => {
 
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-            <p className="text-red-700 text-sm">{error}</p>
+            <Typography variant="body-sm" className="text-red-700">{error}</Typography>
           </div>
         )}
 
         {generatedImageUrl && (
           <div className="mt-6">
-            <h3 className="text-md font-medium mb-2">Generated Image:</h3>
+            <Typography variant="h3" className="mb-2">Generated Image:</Typography>
             <div className="border border-gray-200 rounded-md overflow-hidden">
               <Image
                 src={generatedImageUrl}
@@ -176,10 +175,10 @@ export const ImageGenerator = () => {
           <div className="flex items-center justify-center p-8">
             <div className="flex flex-col items-center gap-2">
               <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-              <p className="text-sm text-gray-600">
+              <Typography variant="body-sm" className="text-gray-600">
                 {isGenerating && 'Submitting your request...'}
                 {isWaiting && waitingMessage}
-              </p>
+              </Typography>
             </div>
           </div>
         )}

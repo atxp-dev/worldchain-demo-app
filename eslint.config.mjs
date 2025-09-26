@@ -1,3 +1,6 @@
+// For more info, see https://github.com/storybookjs/eslint-plugin-storybook#configuration-flat-config-format
+import storybook from "eslint-plugin-storybook";
+
 import { FlatCompat } from '@eslint/eslintrc';
 import react from 'eslint-plugin-react';
 import { dirname } from 'path';
@@ -10,16 +13,13 @@ const compat = new FlatCompat({
   baseDirectory: __dirname,
 });
 
-const eslintConfig = [
-  ...compat.extends('next/core-web-vitals', 'next/typescript'),
-  {
-    settings: { react: { version: 'detect' } },
-    plugins: { react },
-    rules: {
-      ...react.configs.recommended.rules,
-      ...react.configs['jsx-runtime'].rules,
-    },
+const eslintConfig = [...compat.extends('next/core-web-vitals', 'next/typescript'), {
+  settings: { react: { version: 'detect' } },
+  plugins: { react },
+  rules: {
+    ...react.configs.recommended.rules,
+    ...react.configs['jsx-runtime'].rules,
   },
-];
+}, ...storybook.configs["flat/recommended"]];
 
 export default eslintConfig;
