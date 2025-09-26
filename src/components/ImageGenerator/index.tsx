@@ -5,6 +5,7 @@ import { Button } from '@worldcoin/mini-apps-ui-kit-react';
 import { useState, useCallback } from 'react';
 import Image from 'next/image';
 import { useProgressiveMessage } from '@/hooks/useProgressiveMessage';
+import { MiniKit } from '@worldcoin/minikit-js';
 
 const WAITING_MESSAGES = [
   'Creating your image...',
@@ -67,6 +68,10 @@ export const ImageGenerator = () => {
 
       if (imageUrl) {
         setGeneratedImageUrl(imageUrl);
+        MiniKit.commands.sendHapticFeedback({
+          hapticsType: 'notification',
+          style: 'success',
+        });
       } else {
         setError('Failed to retrieve generated image');
       }
@@ -87,6 +92,20 @@ export const ImageGenerator = () => {
   }, [handleSubmit]);
 
   const isLoading = isGenerating || isWaiting;
+
+  const handleShare = useCallback(async () => {
+    if (!generatedImageUrl) return;
+
+    try {
+      await MiniKit.commandsAsync.share({
+        title: 'AI Generated Image',
+        text: `Check out this AI generated image from: "${prompt}"`,
+        url: generatedImageUrl,
+      });
+    } catch (err) {
+      console.error('Failed to share image:', err);
+    }
+  }, [generatedImageUrl, prompt]);
 
   return (
     <div className="w-full max-w-2xl mx-auto p-4 bg-white rounded-lg border-2 border-gray-200">
@@ -139,6 +158,16 @@ export const ImageGenerator = () => {
                 onError={() => setError('Failed to load generated image')}
                 unoptimized
               />
+            </div>
+            <div className="mt-4">
+              <Button
+                onClick={handleShare}
+                variant="secondary"
+                size="lg"
+                className="w-full"
+              >
+                Share Image
+              </Button>
             </div>
           </div>
         )}
