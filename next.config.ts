@@ -1,10 +1,27 @@
 import type { NextConfig } from 'next';
 
+// Extract domain from AUTH_URL environment variable
+const getAuthDomain = () => {
+  const authUrl = process.env.AUTH_URL;
+  if (!authUrl) return null;
+
+  try {
+    const url = new URL(authUrl);
+    return url.hostname;
+  } catch {
+    return null;
+  }
+};
+
+const authDomain = getAuthDomain();
+const domains = authDomain ? [authDomain] : [];
+const allowedOrigins = authDomain ? ['*', authDomain] : ['*'];
+
 const nextConfig: NextConfig = {
   images: {
-    domains: ['f9108ab35d10.ngrok-free.app'],
+    domains,
   },
-  allowedDevOrigins: ['*', 'f9108ab35d10.ngrok-free.app'], // Add your dev origin here
+  allowedDevOrigins: allowedOrigins,
   reactStrictMode: false,
 };
 
