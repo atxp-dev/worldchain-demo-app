@@ -43,18 +43,15 @@ const MockImageGenerator = () => {
 
   return (
     <div className="w-full max-w-2xl mx-auto p-4 bg-white rounded-lg border-2 border-gray-200">
-      <Typography variant="h2" className="mb-4 text-gray-900">AI Image Generator</Typography>
+      <Typography variant="heading" level={1} as="h2" className="mb-4 text-gray-900">AI Image Generator</Typography>
 
       <div className="space-y-4">
         <div>
-          <Typography variant="label" className="block mb-2 text-gray-700">
-            Image Prompt
-          </Typography>
           <TextArea
+            label="Image Prompt"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Describe the image you want to generate... (Ctrl/Cmd + Enter to submit)"
             disabled={isLoading}
             rows={4}
           />
@@ -84,13 +81,13 @@ const MockImageGenerator = () => {
 
         {error && (
           <div className="p-3 bg-red-50 border border-red-200 rounded-md">
-            <Typography variant="body-sm" className="text-red-700">{error}</Typography>
+            <Typography variant="body" level={2} className="text-red-700">{error}</Typography>
           </div>
         )}
 
         {generatedImageUrl && (
           <div className="mt-6">
-            <Typography variant="h3" className="mb-2 text-gray-800">Generated Image:</Typography>
+            <Typography variant="heading" level={2} as="h3" className="mb-2 text-gray-800">Generated Image:</Typography>
             <div className="border border-gray-200 rounded-md overflow-hidden">
               <img
                 src={generatedImageUrl}
@@ -116,7 +113,7 @@ const MockImageGenerator = () => {
           <div className="flex items-center justify-center p-8">
             <div className="flex flex-col items-center gap-2">
               <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin" />
-              <Typography variant="body-sm" className="text-gray-600">
+              <Typography variant="body" level={2} className="text-gray-600">
                 Creating your image...
               </Typography>
             </div>
@@ -177,17 +174,14 @@ export const WithGeneratedImage: Story = {
 
       return (
         <div className="w-full max-w-2xl mx-auto p-4 bg-white rounded-lg border-2 border-gray-200">
-          <Typography variant="h2" className="mb-4 text-gray-900">AI Image Generator</Typography>
+          <Typography variant="heading" level={1} as="h2" className="mb-4 text-gray-900">AI Image Generator</Typography>
 
           <div className="space-y-4">
             <div>
-              <Typography variant="label" className="block mb-2">
-                Image Prompt
-              </Typography>
               <TextArea
+                label="Image Prompt"
                 value={prompt}
                 readOnly
-                placeholder="Describe the image you want to generate... (Ctrl/Cmd + Enter to submit)"
                 rows={4}
               />
             </div>
@@ -202,7 +196,7 @@ export const WithGeneratedImage: Story = {
             </Button>
 
             <div className="mt-6">
-              <Typography variant="h3" className="mb-2 text-gray-800">Generated Image:</Typography>
+              <Typography variant="heading" level={2} as="h3" className="mb-2 text-gray-800">Generated Image:</Typography>
               <div className="border border-gray-200 rounded-md overflow-hidden">
                 <img
                   src={generatedImageUrl}
