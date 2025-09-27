@@ -4,6 +4,8 @@
 
 This template demonstrates how to integrate **ATXP (Autonomous Transaction Execution Protocol)** into a World Mini App, enabling AI-powered payments and MCP (Model Context Protocol) server interactions.
 
+![World Mini App Screenshot](screenshot.png)
+
 ## Features
 
 - 🤖 **ATXP Integration** - AI-powered payment processing for MCP servers
